@@ -1,0 +1,357 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title></title>
+  <style>
+    html, body {
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>&nbsp;&nbsp;Jesse's Robot</h1>
+    <p>&nbsp;&nbsp;&nbsp; <strong>Controls:</strong> </p>
+    <p>&nbsp;&nbsp;&nbsp; T: Turn the robot around incrementally (hold to rotate around for duration of keypress)</p>
+    <p>&nbsp;&nbsp;&nbsp; W: The robot will wave both its arms</p>
+    <p>&nbsp;&nbsp;&nbsp; C: Change colors of the robot</p>
+    <p>&nbsp;&nbsp;&nbsp; B: The robot will blink</p>
+    <p>&nbsp;&nbsp;&nbsp; J: The robot will jump</p>
+    <p>&nbsp;&nbsp;&nbsp; Q: The window will close</p>
+    <p>&nbsp;&nbsp;&nbsp; <strong>Or you may use the interactive menu below!</strong></p>
+    <p>&nbsp;&nbsp;&nbsp; <strong>EXTRA CREDIT:</strong></p>
+    <p>&nbsp;&nbsp;&nbsp; This project also includes object picking. Click any part of the robot for it to perform an action</p>
+    <Button id="t" onclick="handleButtonPress(this.id)">Turn robot</Button>
+    <Button id="w" onclick="handleButtonPress(this.id)">Wave</Button>
+    <button id="c" onclick="handleButtonPress(this.id)">Change color</button>
+    <button id="b" onclick="handleButtonPress(this.id)">Blink</button>
+    <button id="j" onclick="handleButtonPress(this.id)">Jump</button>
+    <button id="q" onclick="handleButtonPress(this.id)">Quit</button>
+  </div>
+  <div id="container"></div>
+  <script src="third_party/three.js-master/build/three.js"></script>
+  <script src="third_party/Tween.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script>
+    // set animation bools for click events
+    var isJump = false;
+    var isTurn = false;
+    var isWave = false;
+    var isBlink = false;
+    var isColor = false;
+    var isClose = false;
+    // Set the scene size.
+    const WIDTH = window.innerWidth;
+    const HEIGHT = window.innerHeight;
+
+    // Set some camera attributes.
+    const VIEW_ANGLE = 90;
+    const ASPECT = WIDTH / HEIGHT;
+    const NEAR = 0.1;
+    const FAR = 10000;
+
+    // Get the DOM element to attach to
+    const container =
+        document.querySelector('#container');
+
+    // Create a WebGL renderer, camera
+    // and a scene
+    const renderer = new THREE.WebGLRenderer();
+    const camera =
+        new THREE.PerspectiveCamera(
+            VIEW_ANGLE,
+            ASPECT,
+            NEAR,
+            FAR
+        );
+
+    const scene = new THREE.Scene();
+
+    camera.position.set(0,0,200);
+
+    // Add the camera to the scene.
+    scene.add(camera);
+
+    // Start the renderer.
+    renderer.setSize(WIDTH, HEIGHT);
+
+    // Attach the renderer-supplied
+    // DOM element.
+    container.appendChild(renderer.domElement);
+
+    // initialize picking variables
+    var mouse = new THREE.Vector2();
+    var raycaster = new THREE.Raycaster();
+
+    // create a point light
+    const pointLight =
+      new THREE.PointLight(0xFFFFFF);
+
+    // set its position
+    pointLight.position.x = 10;
+    pointLight.position.y = 50;
+    pointLight.position.z = 130;
+
+    // add to the scene
+    scene.add(pointLight);
+
+    // create head
+    const head = new THREE.Mesh( new THREE.BoxGeometry(30, 30, 30),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    head.position.y = 30;
+    head.position.z = -250;
+    head.rotation.y = 5;
+    head.name = "head";
+    scene.add(head);
+
+    // create torso
+    const torso = new THREE.Mesh( new THREE.BoxGeometry(30, 90, 80),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    torso.position.z = -250;
+    torso.position.y = -30;
+    torso.rotation.y = 5;
+    torso.name = "torso";
+    scene.add(torso);
+
+    // create left eye
+    const leftEye = new THREE.Mesh( new THREE.SphereGeometry(5, 5, 5),
+      new THREE.MeshLambertMaterial({ color: 0xCC0000 }));
+    leftEye.position.z = -230;
+    leftEye.position.x = -3;
+    leftEye.position.y = 30;
+    leftEye.rotation.y = 5;
+    leftEye.name = "eye";
+    scene.add(leftEye);
+
+    // create right eye
+    const rightEye = new THREE.Mesh( new THREE.SphereGeometry(5, 5, 5),
+      new THREE.MeshLambertMaterial({ color: 0xCC0000 }));
+    rightEye.position.z = -235;
+    rightEye.position.x = 13;
+    rightEye.position.y = 30;
+    rightEye.rotation.y = 5;
+    rightEye.name = "eye";
+    scene.add(rightEye);
+    
+    // create left arm
+    const leftArm = new THREE.Mesh( new THREE.BoxGeometry(20, 100, 20),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    leftArm.position.z = -250;
+    leftArm.position.x = -50;
+    leftArm.position.y = -50;
+    leftArm.rotation.y = 5;
+    leftArm.name = "arm";
+    scene.add(leftArm);
+    
+    // create right arm
+    const rightArm = new THREE.Mesh( new THREE.BoxGeometry(20, 100, 20),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    rightArm.position.z = -280;
+    rightArm.position.x = 45;
+    rightArm.position.y = -50;
+    rightArm.rotation.y = 5;
+    rightArm.name = "arm";
+    scene.add(rightArm);
+
+    // create left leg
+    const leftLeg = new THREE.Mesh( new THREE.BoxGeometry(30, 90, 20),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    leftLeg.position.z = -250;
+    leftLeg.position.x = -20;
+    leftLeg.position.y = -120;
+    leftLeg.rotation.y = 5;
+    leftLeg.name = "leg";
+    scene.add(leftLeg);
+
+    // create right leg
+    const rightLeg = new THREE.Mesh( new THREE.BoxGeometry(30, 90, 20),
+      new THREE.MeshLambertMaterial({ color: 0x669999 }));
+    rightLeg.position.z = -260;
+    rightLeg.position.x = 20;
+    rightLeg.position.y = -120;
+    rightLeg.rotation.y = 5;
+    rightLeg.name = "leg";
+    scene.add(rightLeg);
+
+    robot = new THREE.Object3D();
+    robot.add(head);
+    robot.add(torso);
+    robot.add(leftEye);
+    robot.add(rightEye);
+    robot.add(leftArm);
+    robot.add(rightArm);
+    robot.add(leftLeg);
+    robot.add(rightLeg);
+
+    var box = new THREE.Box3().setFromObject(robot);
+    box.center(robot.position);
+    robot.position.multiplyScalar(-1);
+
+    var pivot = new THREE.Group();
+    scene.add(pivot);
+    pivot.add(robot);
+
+
+
+    function createJumpTweens() {
+      jumpTweenA = new TWEEN.Tween(head.position).to({y: head.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenB = new TWEEN.Tween(torso.position).to({y: torso.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenC = new TWEEN.Tween(leftEye.position).to({y: leftEye.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenD = new TWEEN.Tween(rightEye.position).to({y: rightEye.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenE = new TWEEN.Tween(leftArm.position).to({y: leftArm.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenF = new TWEEN.Tween(rightArm.position).to({y: rightArm.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenG = new TWEEN.Tween(leftLeg.position).to({y: leftLeg.position.y+40}, 500).repeat(1).yoyo(true).start();
+      jumpTweenH = new TWEEN.Tween(rightLeg.position).to({y: rightLeg.position.y+40}, 500).repeat(1).yoyo(true).start();
+    }
+
+    function createWaveTweens() {
+      waveTweenA = new TWEEN.Tween(leftArm.rotation).to({z: (180 * Math.PI / 180)}, 500).repeat(1).yoyo(true).start();
+      waveTweenB = new TWEEN.Tween(rightArm.rotation).to({z: (180 * Math.PI / 180)}, 500).repeat(1).yoyo(true).start();
+    }
+
+    function closeEyes() {
+      leftEye.material.color.set(0x000000);
+      rightEye.material.color.set(0x000000);
+    }
+
+    function openEyes() {
+      leftEye.material.color.set(0xCC0000);
+      rightEye.material.color.set(0xCC0000);
+    }
+
+    function turnAround() {
+      pivot.rotation.y += .1;
+    }
+
+    var color = 0;
+    function changeColors() {
+      color += 1;
+      if (color == 1) {
+        head.material.color.set(0xA96DBB);
+        torso.material.color.set(0xA96DBB);
+        leftArm.material.color.set(0xA96DBB);
+        rightArm.material.color.set(0xA96DBB);
+        leftLeg.material.color.set(0xA96DBB);
+        rightLeg.material.color.set(0xA96DBB);
+      } else if (color == 2) {
+        head.material.color.set(0x208613);
+        torso.material.color.set(0x208613);
+        leftArm.material.color.set(0x208613);
+        rightArm.material.color.set(0x208613);
+        leftLeg.material.color.set(0x208613);
+        rightLeg.material.color.set(0x208613);
+      } else if (color == 3) {
+        head.material.color.set(0xE17624);
+        torso.material.color.set(0xE17624);
+        leftArm.material.color.set(0xE17624);
+        rightArm.material.color.set(0xE17624);
+        leftLeg.material.color.set(0xE17624);
+        rightLeg.material.color.set(0xE17624);
+      } else if (color == 4) {
+        head.material.color.set(0x669999);
+        torso.material.color.set(0x669999);
+        leftArm.material.color.set(0x669999);
+        rightArm.material.color.set(0x669999);
+        leftLeg.material.color.set(0x669999);
+        rightLeg.material.color.set(0x669999);
+        color = 0;
+      }
+    }
+
+    // handle mouse inputs
+    function handleButtonPress(id) {
+      if (id == "t") {
+        isTurn = true;
+      } else if (id == "w") {
+        isWave = true;
+      } else if (id == "c") {
+        isColor = true;
+      } else if (id == "b") {
+        isBlink = true;
+      } else if (id == "j") {
+        isJump = true
+      } else if (id == "q") {
+        isClose = true;
+      }
+    }
+
+    function raycast(e) {
+        e.preventDefault();
+        //1. sets the mouse position with a coordinate system where the center
+        //   of the screen is the origin
+        var rect = renderer.domElement.getBoundingClientRect()
+
+        // mouse.x = ( e.clientX / width ) * 2 - 1;
+        // mouse.y = - ( e.clientY / height ) * 2 + 1;
+        mouse.x = ((event.clientX - rect.left) / (rect.width - rect.left)) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1;
+
+        //2. set the picking ray from the camera position and mouse coordinates
+        raycaster.setFromCamera( mouse, camera );    
+
+        //3. compute intersections
+        var intersects = raycaster.intersectObjects( scene.children, true );
+
+        for ( var i = 0; i < intersects.length; i++ ) {
+            console.log( intersects[ i ] ); 
+            if (intersects[i].object.name == "eye") { isBlink = true }
+            if (intersects[i].object.name == "torso") { isColor = true }
+            if (intersects[i].object.name == "leg") { isJump = true }
+            if (intersects[i].object.name == "arm") { isWave = true }
+            if (intersects[i].object.name == "head") { isTurn = true }
+        }
+    }
+
+    document.addEventListener('keydown', update);
+    raycaster = new THREE.Raycaster();
+    renderer.domElement.addEventListener( 'click', raycast, false );
+
+    function update (event) {
+
+      if (String.fromCharCode(event.keyCode) == "J" || isJump) 
+      {
+        createJumpTweens();
+        isJump = false;
+      }
+      if (String.fromCharCode(event.keyCode) == "W" || isWave)
+      {
+        createWaveTweens();
+        isWave = false;
+      }
+      if (String.fromCharCode(event.keyCode) == "B" || isBlink)
+      {
+        closeEyes();
+        setTimeout(() => {openEyes()}, 500);
+        isBlink = false;
+      }
+      if (String.fromCharCode(event.keyCode) == "T" || isTurn)
+      {
+        turnAround();
+        isTurn = false;
+      }
+      if (String.fromCharCode(event.keyCode) == "C" || isColor)
+      {
+        changeColors();
+        isColor = false;
+      }
+      if (String.fromCharCode(event.keyCode) == "Q" || isClose)
+      {
+        window.close();
+      }
+      
+      TWEEN.update();
+
+      // Draw!
+      renderer.render(scene, camera);
+
+      // Schedule the next frame.
+      requestAnimationFrame(update);
+    }
+
+    // Schedule the first frame.
+    requestAnimationFrame(update);
+  </script>
+</body>
+</html>
