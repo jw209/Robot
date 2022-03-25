@@ -19,15 +19,18 @@
     <p>&nbsp;&nbsp;&nbsp; C: Change colors of the robot</p>
     <p>&nbsp;&nbsp;&nbsp; B: The robot will blink</p>
     <p>&nbsp;&nbsp;&nbsp; J: The robot will jump</p>
+    <p>&nbsp;&nbsp;&nbsp; M: The texture of the robots chest will change</p>
     <p>&nbsp;&nbsp;&nbsp; Q: The window will close</p>
     <p>&nbsp;&nbsp;&nbsp; <strong>Or you may use the interactive menu below!</strong></p>
     <p>&nbsp;&nbsp;&nbsp; <strong>EXTRA CREDIT:</strong></p>
-    <p>&nbsp;&nbsp;&nbsp; This project also includes object picking. Click any part of the robot for it to perform an action</p>
+    <p>&nbsp;&nbsp;&nbsp; 1) This project also includes object picking. Click any part of the robot for it to perform an action</p>
+    <p>&nbsp;&nbsp;&nbsp; 1) This project also includes textures. Change texture of robots chest by clicking the button above or pressing "M" key</p>
     <Button id="t" onclick="handleButtonPress(this.id)">Turn robot</Button>
     <Button id="w" onclick="handleButtonPress(this.id)">Wave</Button>
     <button id="c" onclick="handleButtonPress(this.id)">Change color</button>
     <button id="b" onclick="handleButtonPress(this.id)">Blink</button>
     <button id="j" onclick="handleButtonPress(this.id)">Jump</button>
+    <button id="m" onclick="handleButtonPress(this.id)">Texture</button>
     <button id="q" onclick="handleButtonPress(this.id)">Quit</button>
   </div>
   <div id="container"></div>
@@ -42,6 +45,7 @@
     var isBlink = false;
     var isColor = false;
     var isClose = false;
+    var isTexture = false;
     // Set the scene size.
     const WIDTH = window.innerWidth;
     const HEIGHT = window.innerHeight;
@@ -96,6 +100,11 @@
 
     // add to the scene
     scene.add(pointLight);
+
+    const textureLoader = new THREE.TextureLoader();
+    const textureChest1 = textureLoader.load("img/pattern1.png");
+    const textureChest2 = textureLoader.load("img/pattern2.png");
+    const textureChest3 = textureLoader.load("img/pattern3.png");
 
     // create head
     const head = new THREE.Mesh( new THREE.BoxGeometry(30, 30, 30),
@@ -272,26 +281,38 @@
         isBlink = true;
       } else if (id == "j") {
         isJump = true
+      } else if (id == "m") {
+        isTexture = true;
       } else if (id == "q") {
         isClose = true;
       }
     }
 
+    var textureChange = 0;
+    function changeTexture() {
+      textureChange += 1;
+      if (textureChange == 1) {
+        torso.material = new THREE.MeshStandardMaterial({map: textureChest1});
+      } else if (textureChange == 2) {
+        torso.material = new THREE.MeshStandardMaterial({map: textureChest2});
+      } else if (textureChange == 3) {
+        torso.material = new THREE.MeshStandardMaterial({map: textureChest3});
+      } else if (textureChange == 4) {
+        torso.material = new THREE.MeshLambertMaterial({ color: 0x669999 });
+        textureChange = 0;
+      }
+    }
+
     function raycast(e) {
         e.preventDefault();
-        //1. sets the mouse position with a coordinate system where the center
-        //   of the screen is the origin
+
         var rect = renderer.domElement.getBoundingClientRect()
 
-        // mouse.x = ( e.clientX / width ) * 2 - 1;
-        // mouse.y = - ( e.clientY / height ) * 2 + 1;
         mouse.x = ((event.clientX - rect.left) / (rect.width - rect.left)) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1;
 
-        //2. set the picking ray from the camera position and mouse coordinates
         raycaster.setFromCamera( mouse, camera );    
 
-        //3. compute intersections
         var intersects = raycaster.intersectObjects( scene.children, true );
 
         for ( var i = 0; i < intersects.length; i++ ) {
@@ -339,6 +360,11 @@
       if (String.fromCharCode(event.keyCode) == "Q" || isClose)
       {
         window.close();
+      }
+      if (String.fromCharCode(event.keyCode) == "M" || isTexture)
+      {
+        changeTexture();
+        isTexture = false;
       }
       
       TWEEN.update();
